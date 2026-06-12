@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+livetest.db
+app/storage/generated_sheets/*
+app/storage/uploads/*
+app/storage/pdfs/*
+app/storage/proofs/*
+app/storage/processed/*
+!app/storage/**/.gitkeep

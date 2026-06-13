@@ -18,12 +18,23 @@ class Base(DeclarativeBase):
 def run_migrations(eng):
     """Add columns to existing tables if they don't exist yet (SQLite-safe)."""
     migrations = [
+        # tests
         "ALTER TABLE tests ADD COLUMN course_id INTEGER REFERENCES courses(id)",
         "ALTER TABLE tests ADD COLUMN created_by_id INTEGER REFERENCES users(id)",
+        # generated_sheets
         "ALTER TABLE generated_sheets ADD COLUMN student_id INTEGER REFERENCES users(id)",
+        # qr_codes
         "ALTER TABLE qr_codes ADD COLUMN student_id INTEGER REFERENCES users(id)",
+        # grading_results
         "ALTER TABLE grading_results ADD COLUMN generated_sheet_id INTEGER REFERENCES generated_sheets(id)",
+        # grading_history
         "ALTER TABLE grading_history ADD COLUMN student_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE grading_history ADD COLUMN sheet_id INTEGER REFERENCES generated_sheets(id)",
+        "ALTER TABLE grading_history ADD COLUMN qr_code_id INTEGER REFERENCES qr_codes(id)",
+        "ALTER TABLE grading_history ADD COLUMN annotated_image_path VARCHAR(500)",
+        "ALTER TABLE grading_history ADD COLUMN processed_image_path VARCHAR(500)",
+        "ALTER TABLE grading_history ADD COLUMN ambiguous_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE grading_history ADD COLUMN updated_at DATETIME",
     ]
     with eng.connect() as conn:
         for m in migrations:

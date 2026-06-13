@@ -14,6 +14,9 @@ concurrency:
   group: cloudflare-pages-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CLOUDFLARE_PROJECT_NAME: autograde
+
 jobs:
   deploy:
     name: Build and deploy
@@ -38,10 +41,18 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Create Cloudflare Pages project if needed
+        run: |
+          npx wrangler pages project list | grep -q "${CLOUDFLARE_PROJECT_NAME}" || \
+          npx wrangler pages project create "${CLOUDFLARE_PROJECT_NAME}" --production-branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/dist --project-name=autograde
+          command: pages deploy frontend/dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --commit-dirty=true
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

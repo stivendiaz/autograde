@@ -161,17 +161,20 @@ def _attempt_grading(
     db.commit()
     db.refresh(grading)
 
-    _save_grading_history(
-        image_path=image_path,
-        test=test,
-        sheet=sheet,
-        qr_entry=qr_entry,
-        result=result,
-        answer_key=answer_key,
-        raw_ak=raw_ak,
-        tmpl=tmpl,
-        db=db,
-    )
+    try:
+        _save_grading_history(
+            image_path=image_path,
+            test=test,
+            sheet=sheet,
+            qr_entry=qr_entry,
+            result=result,
+            answer_key=answer_key,
+            raw_ak=raw_ak,
+            tmpl=tmpl,
+            db=db,
+        )
+    except Exception:
+        db.rollback()
 
     return AutoDetectResponse(
         status="graded",
@@ -250,14 +253,14 @@ def _save_grading_history(
         .first()
     )
 
-    original_path = save_original(image_path, uid)
-
+    original_path = image_path
     corrected_pil = None
     processed_path = None
     annotated_path = None
     ambiguous_count = 0
 
     try:
+        original_path = save_original(image_path, uid)
         corrected_pil = get_corrected_pil_image(image_path, tmpl)
         processed_path = save_processed(corrected_pil, uid)
         layout = layout_from_template(tmpl)

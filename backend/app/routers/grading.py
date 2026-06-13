@@ -80,16 +80,19 @@ def grade_upload(
     db.commit()
     db.refresh(grading)
 
-    _save_history_for_manual(
-        image_path=str(dest),
-        test=test,
-        result=result,
-        answer_key=answer_key,
-        raw_ak=raw_ak,
-        tmpl=tmpl,
-        student_id=student_id,
-        db=db,
-    )
+    try:
+        _save_history_for_manual(
+            image_path=str(dest),
+            test=test,
+            result=result,
+            answer_key=answer_key,
+            raw_ak=raw_ak,
+            tmpl=tmpl,
+            student_id=student_id,
+            db=db,
+        )
+    except Exception:
+        db.rollback()
 
     return GradeResponse(
         id=grading.id,
@@ -150,11 +153,12 @@ def _save_history_for_manual(
     uid = f"manual_{test.id}_{uuid.uuid4().hex[:8]}"
     answer_key_json = json.dumps(raw_ak)
 
-    original_path = save_original(image_path, uid)
+    original_path = image_path
     processed_path = None
     annotated_path = None
 
     try:
+        original_path = save_original(image_path, uid)
         corrected_pil = get_corrected_pil_image(image_path, tmpl)
         processed_path = save_processed(corrected_pil, uid)
         layout = layout_from_template(tmpl)

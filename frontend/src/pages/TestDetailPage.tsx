@@ -217,7 +217,7 @@ export default function TestDetailPage() {
           {/* Results distribution chart */}
           {history.length > 0 && (
             <div className="card p-4 md:p-6 mb-6">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Score Distribution</p>
+              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">{t('testDetail.scoreDistribution')}</p>
               <div className="h-10 flex items-end gap-1">
                 {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map((bucket) => {
                   const count = history.filter((h) => {

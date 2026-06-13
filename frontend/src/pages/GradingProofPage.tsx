@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth, authFetch } from '../auth/AuthContext'
+import { api, API_BASE } from '../api/client'
 import { ArrowLeft, Check, X, Circle, AlertTriangle } from 'lucide-react'
 
 interface ProofData {
@@ -33,12 +35,13 @@ export default function GradingProofPage() {
   const { historyId } = useParams<{ historyId: string }>()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { token } = useAuth()
   const [data, setData] = useState<ProofData | null>(null)
   const [tab, setTab] = useState<'proof' | 'breakdown'>('proof')
 
   useEffect(() => {
     if (!historyId) return
-    fetch(`/api/grading-history/${historyId}`)
+    authFetch(`/grading-history/${historyId}`, token)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
@@ -123,7 +126,7 @@ export default function GradingProofPage() {
                 <p className="text-[11px] text-[#9CA3AF] mt-0.5">{t('testDetail.proofLegend')}</p>
               </div>
               <img
-                src={`/api/grading-history/${data.id}/proof`}
+                src={`${API_BASE}/grading-history/${data.id}/proof`}
                 alt="Annotated grading proof"
                 className="w-full max-h-[600px] object-contain bg-[#F9FAFB]"
               />
@@ -136,7 +139,7 @@ export default function GradingProofPage() {
                 <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">{t('testDetail.perspectiveCorrected')}</p>
               </div>
               <img
-                src={`/api/grading-history/${data.id}/processed`}
+                src={`${API_BASE}/grading-history/${data.id}/processed`}
                 alt="Perspective corrected image"
                 className="w-full max-h-[600px] object-contain bg-[#F9FAFB]"
               />

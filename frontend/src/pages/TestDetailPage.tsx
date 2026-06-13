@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api, TestDetail } from '../api/client'
+import { api, TestDetail, API_BASE } from '../api/client'
 import { useAuth, authFetch } from '../auth/AuthContext'
 import {
   ArrowLeft, Download, ScanLine, Check, X, Circle, Clock, Maximize2, X as XIcon,
@@ -319,7 +319,7 @@ export default function TestDetailPage() {
                         <p className="text-xs text-[#9CA3AF] mb-3">{t('testDetail.student')}: <span className="font-medium text-[#6B7280]">{h.student_name || t('testDetail.anonymous')}</span></p>
                         {h.annotated_image_path ? (
                           <div className="relative cursor-pointer rounded-lg overflow-hidden bg-[#F9FAFB] border border-[#F3F4F6] group/img" onClick={() => setPreview(h)}>
-                            <img src={`/api/grading-history/${h.id}/proof`} alt="Proof" loading="lazy" className="w-full aspect-[3/2] object-contain" />
+                            <img src={`${API_BASE}/grading-history/${h.id}/proof`} alt="Proof" loading="lazy" className="w-full aspect-[3/2] object-contain" />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/5 transition-colors flex items-center justify-center">
                               <Maximize2 className="w-5 h-5 text-[#9CA3AF] opacity-0 group-hover/img:opacity-100" />
                             </div>
@@ -356,7 +356,7 @@ export default function TestDetailPage() {
               <button onClick={() => setPreview(null)} className="p-2 rounded-lg hover:bg-[#F3F4F6]"><XIcon className="w-5 h-5 text-[#6B7280]" /></button>
             </div>
             <div className="p-5">
-              {preview.annotated_image_path && <img src={`/api/grading-history/${preview.id}/proof`} alt="Proof" className="w-full rounded-xl border border-[#F3F4F6]" />}
+              {preview.annotated_image_path && <img src={`${API_BASE}/grading-history/${preview.id}/proof`} alt="Proof" className="w-full rounded-xl border border-[#F3F4F6]" />}
               <div className="flex items-center gap-3 mt-5">
                 <button onClick={() => { setPreview(null); navigate(`/history/${preview.id}`) }} className="btn-primary flex-1">{t('testDetail.viewFullHistory')}</button>
                 <button onClick={() => setPreview(null)} className="btn-secondary flex-1">{t('testDetail.close')}</button>

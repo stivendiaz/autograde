@@ -5,7 +5,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-STORAGE_DIR = Path(__file__).parent.parent / "storage"
+from app.config import STORAGE_DIR
+
 PROCESSED_DIR = STORAGE_DIR / "processed"
 PROOFS_DIR = STORAGE_DIR / "proofs"
 

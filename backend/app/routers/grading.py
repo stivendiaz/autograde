@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from app.config import STORAGE_DIR
 from app.database import get_db
 from app.models import Evaluation, GradingHistory, GradingResult, OMRTemplate, Test
 from app.schemas import GradeResponse, GradingResultOut
@@ -21,7 +22,7 @@ from app.services.grading_history_service import (
 )
 from app.services.omr_template_service import layout_from_template
 
-UPLOAD_DIR = Path(__file__).parent.parent / "storage" / "uploads"
+UPLOAD_DIR = STORAGE_DIR / "uploads"
 
 router = APIRouter(prefix="/tests/{test_id}/grading", tags=["grading"])
 

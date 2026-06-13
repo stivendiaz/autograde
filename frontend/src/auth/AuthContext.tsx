@@ -84,7 +84,7 @@ export function authFetch(path: string, token: string | null, options?: RequestI
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
-  const base = (import.meta as any).env?.VITE_API_URL || '/api'
+  const base = import.meta.env.VITE_API_URL || '/api'
   return fetch(`${base}${path}`, {
     ...options,
     headers: { ...headers, ...options?.headers },

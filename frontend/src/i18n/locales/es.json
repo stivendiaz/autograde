@@ -143,7 +143,8 @@
     "detected": "Detectado",
     "testNum": "Examen #{{id}}",
     "sheetNum": "Hoja #{{id}}",
-    "examIdentified": "Examen {{name}} identificado. Abriendo examen relacionado..."
+    "examIdentified": "Examen {{name}} identificado. Abriendo examen relacionado...",
+    "error": "Error de calificación"
   },
   "history": {
     "title": "Historial de Calificaciones",

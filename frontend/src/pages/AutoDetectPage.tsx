@@ -144,6 +144,13 @@ export default function AutoDetectPage() {
             </div>
           )}
 
+          {result && result.status === 'error' && (
+            <div className="card p-4 md:p-6 mt-4 md:mt-6 border-red-200 bg-red-50/30">
+              <p className="text-red-800 font-semibold mb-2">{t('autoDetect.error')}</p>
+              <p className="text-red-700 text-sm">{result.error}</p>
+            </div>
+          )}
+
           {result && result.status === 'graded' && (
             <GradedResult result={result} onReset={() => { setResult(null); setFile(null) }} />
           )}

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import tempfile
-import traceback
 import uuid
 from pathlib import Path
 
@@ -23,6 +23,8 @@ from app.services.grading_history_service import (
     save_processed,
 )
 from app.services.omr_template_service import layout_from_template
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = STORAGE_DIR / "uploads"
 
@@ -67,7 +69,16 @@ def auto_detect_grade(file: UploadFile, db: Session = Depends(get_db)):
             error="QR code references data that no longer exists.",
         )
 
-    return _attempt_grading(str(dest), test, sheet, qr_entry, db)
+    try:
+        return _attempt_grading(str(dest), test, sheet, qr_entry, db)
+    except Exception:
+        logger.exception("auto_detect_grade: unhandled error during grading")
+        return AutoDetectResponse(
+            status="error",
+            qr_detected=True,
+            exam_detected=False,
+            error="An internal error occurred while grading. Check server logs for details.",
+        )
 
 
 def _attempt_grading(
@@ -147,22 +158,35 @@ def _attempt_grading(
             sheet_id=sheet.id,
         )
 
-    grading = GradingResult(
-        test_id=test.id,
-        generated_sheet_id=sheet.id,
-        uploaded_image_path=image_path,
-        detected_answers_json=json.dumps(result["detected_answers"]),
-        score=result["score"],
-        total_questions=result["total_questions"],
-        correct_count=result["correct_count"],
-        incorrect_count=result["incorrect_count"],
-        blank_count=result["blank_count"],
-        result_json=json.dumps(result),
-    )
-    db.add(grading)
-    db.commit()
-    db.refresh(grading)
-    print(f"[auto-detect] GradingResult saved id={grading.id} test={test.id} sheet={sheet.id} score={result['score']}")
+    try:
+        grading = GradingResult(
+            test_id=test.id,
+            generated_sheet_id=sheet.id,
+            uploaded_image_path=image_path,
+            detected_answers_json=json.dumps(result["detected_answers"]),
+            score=result["score"],
+            total_questions=result["total_questions"],
+            correct_count=result["correct_count"],
+            incorrect_count=result["incorrect_count"],
+            blank_count=result["blank_count"],
+            result_json=json.dumps(result),
+        )
+        db.add(grading)
+        db.commit()
+        db.refresh(grading)
+    except Exception as e:
+        logger.exception("_attempt_grading: GradingResult commit failed")
+        return AutoDetectResponse(
+            status="error",
+            qr_detected=True,
+            exam_detected=True,
+            test_id=test.id,
+            test_name=test.name,
+            sheet_id=sheet.id,
+            error=f"Failed to save grading result: {e}",
+        )
+
+    logger.info("GradingResult saved id=%s test=%s sheet=%s score=%s", grading.id, test.id, sheet.id, result["score"])
 
     try:
         _save_grading_history(
@@ -177,7 +201,7 @@ def _attempt_grading(
             db=db,
         )
     except Exception:
-        traceback.print_exc()
+        logger.exception("_attempt_grading: _save_grading_history failed")
         db.rollback()
 
     return AutoDetectResponse(
@@ -263,7 +287,7 @@ def _save_grading_history(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
     except Exception:
-        traceback.print_exc()
+        logger.exception("_save_grading_history: image processing failed")
         pass
 
     record = GradingHistory(
@@ -287,5 +311,5 @@ def _save_grading_history(
     db.add(record)
     db.commit()
     db.refresh(record)
-    print(f"[auto-detect] GradingHistory created id={record.id} test={test.id} sheet={sheet.id} score={result['score']}")
+    logger.info("GradingHistory created id=%s test=%s sheet=%s score=%s", record.id, test.id, sheet.id, result["score"])
     return record

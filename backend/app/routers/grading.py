@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
-import traceback
 import uuid
 from pathlib import Path
 
@@ -21,6 +21,8 @@ from app.services.grading_history_service import (
     save_processed,
 )
 from app.services.omr_template_service import layout_from_template
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = STORAGE_DIR / "uploads"
 
@@ -94,7 +96,7 @@ def grade_upload(
             db=db,
         )
     except Exception:
-        traceback.print_exc()
+        logger.exception("grade_upload: _save_history_for_manual failed")
         db.rollback()
 
     return GradeResponse(
@@ -169,7 +171,7 @@ def _save_history_for_manual(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
     except Exception:
-        traceback.print_exc()
+        logger.exception("_save_history_for_manual: image processing failed")
         pass
 
     record = GradingHistory(

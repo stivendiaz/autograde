@@ -20,6 +20,7 @@ def run_migrations(eng):
         "ALTER TABLE tests ADD COLUMN created_by_id INTEGER REFERENCES users(id)",
         "ALTER TABLE generated_sheets ADD COLUMN student_id INTEGER REFERENCES users(id)",
         "ALTER TABLE qr_codes ADD COLUMN student_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE grading_results ADD COLUMN generated_sheet_id INTEGER REFERENCES generated_sheets(id)",
         "ALTER TABLE grading_history ADD COLUMN student_id INTEGER REFERENCES users(id)",
     ]
     with eng.connect() as conn:

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { AutoDetectResult } from '../api/client'
+import { AutoDetectResult, API_BASE } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import { Camera, CameraOff, ScanLine, Check, Loader } from 'lucide-react'
 
@@ -94,7 +94,7 @@ export default function CameraScanner({ active, onGraded, onRedirect }: Props) {
               const form = new FormData()
               form.append('file', file)
 
-              const res = await fetch('/api/grade/detect-frame', { method: 'POST', body: form })
+              const res = await fetch(`${API_BASE}/grade/detect-frame`, { method: 'POST', body: form })
               if (!res.ok || cancelled) {
                 processingRef.current = false
                 return

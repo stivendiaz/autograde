@@ -142,15 +142,14 @@ export const api = {
   generateSheet: (testId: number) =>
     request<GeneratedSheet>(`/tests/${testId}/sheets/generate`, { method: 'POST' }),
 
-  getSheetDownloadUrl: (testId: number) => `/api/tests/${testId}/sheets/download`,
-  getSheetPdfUrl: (testId: number) => `/api/tests/${testId}/sheets/download-pdf`,
-  getAnswerKeyImageUrl: (testId: number) => `/api/tests/${testId}/sheets/answer-key-image`,
-  getAnswerKeyPdfUrl: (testId: number) => `/api/tests/${testId}/sheets/answer-key-pdf`,
-
-  getSheetWithLang: (testId: number, lang: string) => `/api/tests/${testId}/sheets/download?lang=${lang}`,
-  getSheetPdfWithLang: (testId: number, lang: string) => `/api/tests/${testId}/sheets/download-pdf?lang=${lang}`,
-  getAnswerKeyImageWithLang: (testId: number, lang: string) => `/api/tests/${testId}/sheets/answer-key-image?lang=${lang}`,
-  getAnswerKeyPdfWithLang: (testId: number, lang: string) => `/api/tests/${testId}/sheets/answer-key-pdf?lang=${lang}`,
+  getSheetDownloadUrl: (testId: number) => `${API_BASE}/tests/${testId}/sheets/download`,
+  getSheetPdfUrl: (testId: number) => `${API_BASE}/tests/${testId}/sheets/download-pdf`,
+  getAnswerKeyImageUrl: (testId: number) => `${API_BASE}/tests/${testId}/sheets/answer-key-image`,
+  getAnswerKeyPdfUrl: (testId: number) => `${API_BASE}/tests/${testId}/sheets/answer-key-pdf`,
+  getSheetWithLang: (testId: number, lang: string) => `${API_BASE}/tests/${testId}/sheets/download?lang=${lang}`,
+  getSheetPdfWithLang: (testId: number, lang: string) => `${API_BASE}/tests/${testId}/sheets/download-pdf?lang=${lang}`,
+  getAnswerKeyImageWithLang: (testId: number, lang: string) => `${API_BASE}/tests/${testId}/sheets/answer-key-image?lang=${lang}`,
+  getAnswerKeyPdfWithLang: (testId: number, lang: string) => `${API_BASE}/tests/${testId}/sheets/answer-key-pdf?lang=${lang}`,
 
   gradeUpload: async (testId: number, file: File, studentId?: number): Promise<GradeResponse> => {
     const form = new FormData()

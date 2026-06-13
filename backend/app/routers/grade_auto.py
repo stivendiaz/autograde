@@ -243,18 +243,9 @@ def _save_grading_history(
     tmpl: OMRTemplate,
     db: Session,
 ) -> GradingHistory:
-    uid = f"{test.id}_{sheet.id}"
+    uid = f"{test.id}_{sheet.id}_{uuid.uuid4().hex[:8]}"
     student_id = sheet.student_id or qr_entry.student_id
     answer_key_json = json.dumps(raw_ak)
-
-    existing = (
-        db.query(GradingHistory)
-        .filter(
-            GradingHistory.test_id == test.id,
-            GradingHistory.sheet_id == sheet.id,
-        )
-        .first()
-    )
 
     original_path = image_path
     corrected_pil = None
@@ -273,25 +264,6 @@ def _save_grading_history(
     except Exception:
         traceback.print_exc()
         pass
-
-    if existing:
-        existing.original_image_path = original_path
-        existing.processed_image_path = processed_path
-        existing.annotated_image_path = annotated_path
-        existing.student_id = student_id
-        existing.detected_answers_json = json.dumps(result["detected_answers"])
-        existing.answer_key_json = answer_key_json
-        existing.score = result["score"]
-        existing.total_questions = result["total_questions"]
-        existing.correct_count = result["correct_count"]
-        existing.incorrect_count = result["incorrect_count"]
-        existing.blank_count = result["blank_count"]
-        existing.ambiguous_count = ambiguous_count
-        existing.result_json = json.dumps(result)
-        existing.qr_code_id = qr_entry.id
-        db.commit()
-        print(f"[auto-detect] GradingHistory updated id={existing.id} test={test.id} sheet={sheet.id}")
-        return existing
 
     record = GradingHistory(
         test_id=test.id,

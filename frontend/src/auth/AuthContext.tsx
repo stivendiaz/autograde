@@ -87,6 +87,7 @@ export function authFetch(path: string, token: string | null, options?: RequestI
   const base = import.meta.env.VITE_API_URL || '/api'
   return fetch(`${base}${path}`, {
     ...options,
+    cache: 'no-cache',
     headers: { ...headers, ...options?.headers },
   })
 }

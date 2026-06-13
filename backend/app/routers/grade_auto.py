@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import tempfile
+import traceback
 import uuid
 from pathlib import Path
 
@@ -160,6 +161,7 @@ def _attempt_grading(
     db.add(grading)
     db.commit()
     db.refresh(grading)
+    print(f"[auto-detect] GradingResult saved id={grading.id} test={test.id} sheet={sheet.id} score={result['score']}")
 
     try:
         _save_grading_history(
@@ -174,6 +176,7 @@ def _attempt_grading(
             db=db,
         )
     except Exception:
+        traceback.print_exc()
         db.rollback()
 
     return AutoDetectResponse(
@@ -268,6 +271,7 @@ def _save_grading_history(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
     except Exception:
+        traceback.print_exc()
         pass
 
     if existing:
@@ -286,6 +290,7 @@ def _save_grading_history(
         existing.result_json = json.dumps(result)
         existing.qr_code_id = qr_entry.id
         db.commit()
+        print(f"[auto-detect] GradingHistory updated id={existing.id} test={test.id} sheet={sheet.id}")
         return existing
 
     record = GradingHistory(
@@ -309,4 +314,5 @@ def _save_grading_history(
     db.add(record)
     db.commit()
     db.refresh(record)
+    print(f"[auto-detect] GradingHistory created id={record.id} test={test.id} sheet={sheet.id} score={result['score']}")
     return record

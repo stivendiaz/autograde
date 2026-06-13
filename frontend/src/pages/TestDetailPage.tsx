@@ -57,28 +57,37 @@ export default function TestDetailPage() {
   useEffect(() => {
     if (!testId) return
     const id = Number(testId)
-    api.getTest(id).then(setData).catch(console.error)
 
-    setHistoryLoading(true)
-    authFetch(`/grading-history/test/${id}`, token)
-      .then((r) => r.json())
-      .then(setHistory)
-      .catch(console.error)
-      .finally(() => setHistoryLoading(false))
+    const fetchData = () => {
+      api.getTest(id).then(setData).catch(console.error)
 
-    if (isStudent) {
-      authFetch(`/tests/${id}/student-summary`, token)
+      setHistoryLoading(true)
+      authFetch(`/grading-history/test/${id}`, token)
         .then((r) => r.json())
-        .then(setStudentSummary)
-        .catch(() => {})
+        .then(setHistory)
+        .catch(console.error)
+        .finally(() => setHistoryLoading(false))
+
+      if (isStudent) {
+        authFetch(`/tests/${id}/student-summary`, token)
+          .then((r) => r.json())
+          .then(setStudentSummary)
+          .catch(() => {})
+      }
+
+      if (isTeacher) {
+        authFetch(`/tests/${id}/student-summary`, token)
+          .then((r) => r.json())
+          .then((d) => setTeacherStats(d.stats))
+          .catch(() => {})
+      }
     }
 
-    if (isTeacher) {
-      authFetch(`/tests/${id}/student-summary`, token)
-        .then((r) => r.json())
-        .then((d) => setTeacherStats(d.stats))
-        .catch(() => {})
-    }
+    fetchData()
+
+    const onVisibility = () => { if (document.visibilityState === 'visible') fetchData() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [testId, token, isStudent, isTeacher])
 
   useEffect(() => {

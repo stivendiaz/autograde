@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import traceback
 import uuid
 from pathlib import Path
 
@@ -92,6 +93,7 @@ def grade_upload(
             db=db,
         )
     except Exception:
+        traceback.print_exc()
         db.rollback()
 
     return GradeResponse(
@@ -166,6 +168,7 @@ def _save_history_for_manual(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
     except Exception:
+        traceback.print_exc()
         pass
 
     record = GradingHistory(

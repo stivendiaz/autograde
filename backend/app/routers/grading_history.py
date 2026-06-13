@@ -70,6 +70,7 @@ def by_test(
             .order_by(GradingHistory.created_at.desc())
             .all()
         )
+    print(f"[history] by_test test_id={test_id} found {len(records)} records: {[(r.id, r.test_id, r.sheet_id, r.score) for r in records]}")
     return [_to_out(r, db) for r in records]
 
 

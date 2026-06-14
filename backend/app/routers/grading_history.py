@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import GradingHistory, Test, User
+from app.models import Course, CourseTeacher, GradingHistory, Test, User
 from app.schemas import GradingHistoryOut
 from app.services.grading_history_service import PROOFS_DIR
 
@@ -28,6 +28,29 @@ def list_all(
     query = db.query(GradingHistory)
     if user.role == "student":
         query = query.filter(GradingHistory.student_id == user.id)
+    elif user.role == "teacher":
+        ct_ids = [
+            row[0] for row in
+            db.query(CourseTeacher.course_id)
+            .filter(CourseTeacher.teacher_id == user.id)
+            .all()
+        ]
+        created_course_ids = [
+            row[0] for row in
+            db.query(Course.id)
+            .filter(Course.created_by_id == user.id)
+            .all()
+        ]
+        course_ids = list(set(ct_ids + created_course_ids))
+        test_ids = [
+            row[0] for row in
+            db.query(Test.id)
+            .filter(
+                (Test.course_id.in_(course_ids)) | (Test.created_by_id == user.id)
+            )
+            .all()
+        ]
+        query = query.filter(GradingHistory.test_id.in_(test_ids))
     records = (
         query
         .order_by(GradingHistory.created_at.desc())

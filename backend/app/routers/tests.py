@@ -109,8 +109,7 @@ def list_tests(
             db.query(Test)
             .filter(
                 Test.course_id.in_(all_ids) |
-                (Test.created_by_id == user.id) |
-                (Test.course_id.is_(None))
+                (Test.created_by_id == user.id)
             )
             .order_by(Test.created_at.desc())
             .all()

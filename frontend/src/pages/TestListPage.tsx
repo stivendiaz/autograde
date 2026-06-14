@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, TestListEntry } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { useTranslation } from 'react-i18next'
-import { Plus, FileCheck } from 'lucide-react'
+import { Plus, FileCheck, Clock, ChevronRight } from 'lucide-react'
 import ExamCard from '../components/ExamCard'
 
 export default function TestListPage() {
@@ -39,6 +39,22 @@ export default function TestListPage() {
 
   return (
     <div>
+      {isTeacher && (
+        <Link
+          to="/history"
+          className="md:hidden flex items-center gap-3 p-3.5 rounded-xl bg-white border border-[#E5E7EB] shadow-sm text-[#0F172A] mb-6 active:scale-[0.98] transition-transform"
+        >
+          <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+            <Clock className="w-[18px] h-[18px] text-brand-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="font-semibold text-sm block leading-tight">{t('nav.history')}</span>
+            <span className="text-[#9CA3AF] text-xs block leading-tight">{t('dashboard.historySubtitle')}</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-[#9CA3AF] shrink-0" />
+        </Link>
+      )}
+
       <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
           <h1 className="text-2xl md:text-[32px] font-bold tracking-tight text-[#0F172A]">{t('dashboard.tests')}</h1>
@@ -53,15 +69,15 @@ export default function TestListPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {tests.map((t) => (
+        {tests.map((test) => (
           <ExamCard
-            key={t.id}
-            id={t.id}
-            name={t.name}
-            number_of_questions={t.number_of_questions}
-            number_of_options={t.number_of_options}
-            has_sheet={t.has_sheet}
-            created_at={t.created_at}
+            key={test.id}
+            id={test.id}
+            name={test.name}
+            number_of_questions={test.number_of_questions}
+            number_of_options={test.number_of_options}
+            has_sheet={test.has_sheet}
+            created_at={test.created_at}
           />
         ))}
 

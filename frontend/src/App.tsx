@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import BottomNav, { Sidebar } from './components/Navigation'
 import TestListPage from './pages/TestListPage'
@@ -24,8 +23,7 @@ function TeacherRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppShell() {
-  const { isAuth, isTeacher, isStudent, logout } = useAuth()
-  const { t } = useTranslation()
+  const { isAuth, isStudent } = useAuth()
 
   if (!isAuth) {
     return (
@@ -41,12 +39,6 @@ function AppShell() {
     <div className="min-h-screen flex flex-col">
       <Sidebar />
       <div className="flex-1 md:ml-60">
-        <header className="hidden md:flex sticky top-0 z-20 h-14 bg-white border-b border-[#E5E7EB] items-center justify-between px-8">
-          <div className="flex-1" />
-          <button onClick={logout} className="text-sm text-[#6B7280] hover:text-[#0F172A] transition-colors">
-            {t('nav.signOut')}
-          </button>
-        </header>
         <main className="p-4 md:p-8 pb-20 md:pb-8 max-w-full md:max-w-6xl">
           <Routes>
             <Route path="/" element={<TestListPage />} />

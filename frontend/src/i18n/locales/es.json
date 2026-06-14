@@ -43,7 +43,8 @@
     "questionsShort": "preg.",
     "maxOpts": "Máx {{count}} opcs.",
     "ready": "Listo",
-    "view": "Ver"
+    "view": "Ver",
+    "historySubtitle": "Ver tus exámenes pasados"
   },
   "builder": {
     "title": "Nuevo Examen",

@@ -43,7 +43,8 @@
     "questionsShort": "Q",
     "maxOpts": "Max {{count}} opts",
     "ready": "Ready",
-    "view": "View"
+    "view": "View",
+    "historySubtitle": "View your past tests"
   },
   "builder": {
     "title": "New Test",

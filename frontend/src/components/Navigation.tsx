@@ -9,6 +9,7 @@ import {
   BookOpen,
   User,
   BarChart3,
+  LogOut,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { useTranslation } from 'react-i18next'
@@ -16,13 +17,15 @@ import { useTranslation } from 'react-i18next'
 const teacherNavKeys = [
   { to: '/', icon: LayoutDashboard, key: 'nav.home' },
   { to: '/courses', icon: BookOpen, key: 'nav.courses' },
-  { to: '/builder', icon: PlusCircle, key: 'nav.create' },
-  { to: '/auto-detect', icon: ScanSearch, key: 'nav.grade' },
+  { to: '/auto-detect', icon: ScanSearch, key: 'nav.autoGrade' },
+  { to: '/settings', icon: Settings, key: 'nav.settings' },
 ]
 
 const studentNavKeys = [
   { to: '/', icon: LayoutDashboard, key: 'nav.home' },
   { to: '/courses', icon: BookOpen, key: 'nav.courses' },
+  { to: '/grades', icon: BarChart3, key: 'nav.myGrades' },
+  { to: '/settings', icon: Settings, key: 'nav.settings' },
 ]
 
 const teacherSidebarKeys = [
@@ -59,12 +62,13 @@ export default function BottomNav() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] h-full px-2 transition-colors ${
+              end={item.to === '/'}
+              className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-full px-1 transition-colors ${
                 active ? 'text-brand-600' : 'text-[#9CA3AF]'
               }`}
             >
               <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{t(item.key)}</span>
+              <span className="text-[10px] font-medium leading-tight">{t(item.key)}</span>
             </NavLink>
           )
         })}
@@ -74,7 +78,7 @@ export default function BottomNav() {
 }
 
 export function Sidebar() {
-  const { isTeacher } = useAuth()
+  const { isTeacher, logout } = useAuth()
   const { t } = useTranslation()
   const items = isTeacher ? teacherSidebarKeys : studentSidebarKeys
 
@@ -105,7 +109,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 py-4 border-t border-[#E5E7EB]">
+      <div className="px-3 py-4 border-t border-[#E5E7EB] space-y-0.5">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
@@ -117,6 +121,13 @@ export function Sidebar() {
           <Settings className="w-4 h-4 shrink-0" />
           {t('nav.settings')}
         </NavLink>
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#6B7280] hover:text-red-600 hover:bg-red-50 transition-colors w-full"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {t('nav.signOut')}
+        </button>
       </div>
     </aside>
   )

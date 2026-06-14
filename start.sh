@@ -9,13 +9,13 @@ echo "Starting LiveTest MVP..."
 echo "[backend] Installing deps..."
 cd "$SCRIPT_DIR/backend"
 if [ ! -d venv ]; then
-  python3 -m venv venv
+  /opt/homebrew/bin/python3.13 -m venv venv
 fi
 source venv/bin/activate
 pip install -r requirements.txt -q
 
 echo "[backend] Starting server on http://localhost:8000..."
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug &
 BACKEND_PID=$!
 
 # Frontend

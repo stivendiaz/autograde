@@ -118,7 +118,7 @@ export default function TestBuilderPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="input"
-                  placeholder="e.g. Biology Midterm"
+                  placeholder={t('builder.testNamePlaceholder')}
                 />
               </div>
               <div>
@@ -141,7 +141,7 @@ export default function TestBuilderPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="input resize-none"
-                  placeholder="Optional description..."
+                  placeholder={t('builder.descriptionPlaceholder')}
                 />
               </div>
             </div>
@@ -209,11 +209,11 @@ export default function TestBuilderPage() {
       )}
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 sm:flex-none">
+        <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 sm:flex-none min-h-[56px] sm:min-h-0">
           <Save className="w-4 h-4" />
           {saving ? t('builder.saving') : t('builder.save')}
         </button>
-        <button onClick={() => navigate('/')} className="btn-secondary flex-1 sm:flex-none">
+        <button onClick={() => navigate('/')} className="btn-secondary flex-1 sm:flex-none min-h-[56px] sm:min-h-0">
           {t('builder.cancel')}
         </button>
       </div>

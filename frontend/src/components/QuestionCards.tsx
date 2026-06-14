@@ -48,9 +48,9 @@ export default function QuestionCards({ questions, onChange, onDelete, onDuplica
           >
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-[#9CA3AF]">Q{q.question_number}</span>
+                <span className="text-sm font-semibold text-[#9CA3AF]">{t('dashboard.questionsShort')}{q.question_number}</span>
                 <span className="text-xs font-medium bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md border border-brand-100">
-                  Answer: {q.correct_answer}
+                  {t('dashboard.answerLabel')}: {q.correct_answer}
                 </span>
               </div>
               <div className="flex items-center gap-1">

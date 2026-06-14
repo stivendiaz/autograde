@@ -105,7 +105,7 @@ export interface GradingResultEntry {
 }
 
 export interface AutoDetectResult {
-  status: 'graded' | 'qr_only' | 'not_detected'
+  status: 'graded' | 'qr_only' | 'not_detected' | 'error'
   qr_detected: boolean
   exam_detected: boolean
   markers_detected: boolean

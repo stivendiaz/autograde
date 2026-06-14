@@ -177,7 +177,7 @@ export default function TestBuilderPage() {
                 <h2 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">{t('builder.answerKey')}</h2>
                 <p className="text-xs text-[#9CA3AF] mt-0.5">{t('builder.questionsCount', { count: questions.length })}</p>
               </div>
-              <button type="button" onClick={addQuestion} className="btn-primary text-sm py-2 px-3 h-auto md:hidden">
+              <button type="button" onClick={addQuestion} className="btn-primary text-sm py-2 px-3 h-auto hidden md:inline-flex">
                 <Plus className="w-4 h-4" />
                 {t('builder.addQuestion')}
               </button>
@@ -190,6 +190,14 @@ export default function TestBuilderPage() {
                 onDelete={deleteQuestion}
                 onDuplicate={duplicateQuestion}
               />
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="mt-3 w-full btn-secondary text-sm justify-center"
+              >
+                <Plus className="w-4 h-4" />
+                {t('builder.addQuestion')}
+              </button>
             </div>
 
             <div className="hidden md:block">

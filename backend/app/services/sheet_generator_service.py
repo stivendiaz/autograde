@@ -15,10 +15,6 @@ STORAGE_DIR = Path(__file__).parent.parent / "storage"
 SHEETS_DIR = STORAGE_DIR / "generated_sheets"
 PDF_DIR = STORAGE_DIR / "pdfs"
 
-QR_SIZE = 120
-QR_X = 1500
-QR_Y = 130
-
 
 def generate_answer_sheet_image(
     test_id: int, template: OMRTemplate, test_name: str, qr_code: str = "", lang: str = "es"
@@ -60,22 +56,32 @@ def _build_sheet_image(
     img = Image.new("RGB", (layout["page_width"], layout["page_height"]), "white")
     draw = ImageDraw.Draw(img)
 
+    scale = layout.get("scale", 1.0)
+
     try:
         font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 36)
         font_body = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
         font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 18)
+        # Question fonts scale proportionally with the content
+        font_q_size = max(12, int(22 * scale))
+        font_label_size = max(10, int(18 * scale))
+        font_q = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_q_size)
+        font_label = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_label_size)
     except Exception:
         font_title = ImageFont.load_default()
         font_body = font_title
         font_small = font_title
+        font_q = font_title
+        font_label = font_title
 
     _draw_markers(draw, layout)
     _draw_title(draw, layout, test_name, font_title)
     _draw_student_fields(draw, layout, font_small, lang)
     _draw_instructions(draw, layout, num_q, font_body, lang)
-    _draw_questions(draw, layout, font_body, font_small)
+    _draw_column_separators(draw, layout)
+    _draw_questions(draw, layout, font_q, font_label)
     if qr_code:
-        _draw_qr_code(img, qr_code)
+        _draw_qr_code(img, qr_code, layout)
     return img
 
 
@@ -91,6 +97,13 @@ def _build_key_image(
     for q in answer_key_data:
         correct_map[q.get("question_number")] = q.get("correct_answer", "")
 
+    scale = layout.get("scale", 1.0)
+    try:
+        font_w_size = max(12, int(16 * scale))
+        font_w = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_w_size)
+    except Exception:
+        font_w = ImageFont.load_default()
+
     for q in layout["questions"]:
         qno = q["number"]
         correct = correct_map.get(qno, "")
@@ -100,11 +113,6 @@ def _build_key_image(
             if opt["label"] == correct:
                 cx, cy, r = opt["cx"], opt["cy"], opt["r"]
                 draw.ellipse([cx - r + 2, cy - r + 2, cx + r - 2, cy + r - 2], fill="black")
-                # Redraw label in white over the filled bubble
-                try:
-                    font_w = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 16)
-                except Exception:
-                    font_w = ImageFont.load_default()
                 draw.text((cx, cy), opt["label"], fill="white", font=font_w, anchor="mm")
                 break
 
@@ -122,11 +130,23 @@ def generate_answer_key_image(
     return image_path
 
 
-def _draw_qr_code(img: Image.Image, code: str):
+def _draw_column_separators(draw: ImageDraw, layout: dict):
+    for sep in layout.get("separators", []):
+        x = sep["x"]
+        y1 = sep["y1"]
+        y2 = sep["y2"]
+        draw.line([(x, y1), (x, y2)], fill="#BBBBBB", width=1)
+
+
+def _draw_qr_code(img: Image.Image, code: str, layout: dict):
+    qr_info = layout.get("qr_code", {})
+    qr_x = qr_info.get("x", 1500)
+    qr_y = qr_info.get("y", 130)
+    qr_size = qr_info.get("size", 120)
     qr = qrcode.make(code, box_size=4)
     qr = qr.convert("RGB")
-    qr = qr.resize((QR_SIZE, QR_SIZE), Image.NEAREST)
-    img.paste(qr, (QR_X, QR_Y))
+    qr = qr.resize((qr_size, qr_size), Image.NEAREST)
+    img.paste(qr, (qr_x, qr_y))
 
 
 def _draw_markers(draw: ImageDraw, layout: dict):

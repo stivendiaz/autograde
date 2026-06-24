@@ -31,6 +31,14 @@ class TestCreate(BaseModel):
     questions: list[QuestionDef]
 
 
+class TestUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    course_id: Optional[int] = None
+    number_of_questions: Optional[int] = None
+    questions: Optional[list[QuestionDef]] = None
+
+
 class TestOut(BaseModel):
     id: int
     name: str

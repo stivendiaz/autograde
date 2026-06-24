@@ -119,6 +119,9 @@ class Test(Base):
     assignments = relationship(
         "ExamAssignment", back_populates="test", cascade="all, delete-orphan"
     )
+    grading_history = relationship(
+        "GradingHistory", back_populates="test", cascade="all, delete-orphan"
+    )
 
 
 class OMRTemplate(Base):
@@ -240,6 +243,6 @@ class GradingHistory(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    test = relationship("Test")
+    test = relationship("Test", back_populates="grading_history")
     sheet = relationship("GeneratedSheet")
     student = relationship("User")

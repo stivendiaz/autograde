@@ -139,6 +139,20 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateTest: (id: number, data: {
+    name?: string
+    description?: string
+    course_id?: number
+    questions?: QuestionDef[]
+  }) =>
+    request<TestDetail>(`/tests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteTest: (id: number) =>
+    request<{ ok: boolean }>(`/tests/${id}`, { method: 'DELETE' }),
+
   generateSheet: (testId: number) =>
     request<GeneratedSheet>(`/tests/${testId}/sheets/generate`, { method: 'POST' }),
 

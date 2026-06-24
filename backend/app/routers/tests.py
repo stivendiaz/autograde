@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,13 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_teacher
 from app.database import get_db
-from app.models import Course, CourseStudent, CourseTeacher, Evaluation, ExamAssignment, GeneratedSheet, GradingHistory, OMRTemplate, Test, User
+from app.models import Course, CourseStudent, CourseTeacher, Evaluation, ExamAssignment, GeneratedSheet, GradingHistory, OMRTemplate, QRCode, Test, User
 from app.schemas import (
     QuestionDef,
     TestCreate,
     TestDetailOut,
     TestListOut,
     TestOut,
+    TestUpdate,
 )
 from app.services.omr_template_service import generate_omr_template
 
@@ -266,6 +268,155 @@ def update_answer_key(
         db.commit()
         return {"ok": True}
     raise HTTPException(400, "Missing answer_key field")
+
+
+def _cleanup_files(db: Session, test_id: int):
+    """Remove all generated sheet/image files for a test from disk."""
+    sheets = db.query(GeneratedSheet).filter(GeneratedSheet.test_id == test_id).all()
+    for s in sheets:
+        for p in [s.file_path, s.image_path, s.pdf_path]:
+            if p and os.path.isfile(p):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+    history_items = db.query(GradingHistory).filter(GradingHistory.test_id == test_id).all()
+    for h in history_items:
+        for p in [h.original_image_path, h.processed_image_path, h.annotated_image_path]:
+            if p and os.path.isfile(p):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+    from app.models import GradingResult
+    gr_items = db.query(GradingResult).filter(GradingResult.test_id == test_id).all()
+    for gr in gr_items:
+        if gr.uploaded_image_path and os.path.isfile(gr.uploaded_image_path):
+            try:
+                os.remove(gr.uploaded_image_path)
+            except OSError:
+                pass
+
+
+@router.put("/{test_id}", response_model=TestDetailOut)
+def update_test(
+    test_id: int,
+    payload: TestUpdate,
+    user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    test = db.query(Test).filter(Test.id == test_id).first()
+    if not test:
+        raise HTTPException(404, "Test not found")
+
+    # Update scalar fields
+    changed = False
+    if payload.name is not None:
+        test.name = payload.name
+        changed = True
+    if payload.description is not None:
+        test.description = payload.description
+        changed = True
+    if payload.course_id is not None:
+        test.course_id = payload.course_id
+        changed = True
+
+    # If question data is provided, regenerate
+    if payload.questions is not None:
+        if len(payload.questions) == 0:
+            raise HTTPException(400, "At least one question is required")
+
+        seen = set()
+        for q in payload.questions:
+            if q.question_number in seen:
+                raise HTTPException(400, f"Duplicate question number: {q.question_number}")
+            seen.add(q.question_number)
+            if len(q.options) < 2:
+                raise HTTPException(400, f"Question {q.question_number} must have at least 2 options")
+
+        num_questions = len(payload.questions)
+        max_options = max(len(q.options) for q in payload.questions)
+        sorted_qs = sorted(payload.questions, key=lambda x: x.question_number)
+
+        test.number_of_questions = num_questions
+        test.number_of_options = max_options
+        changed = True
+
+        # Clean up old generated files
+        _cleanup_files(db, test_id)
+
+        # Delete old GeneratedSheet / QRCode records
+        db.query(QRCode).filter(QRCode.test_id == test_id).delete()
+        db.query(GeneratedSheet).filter(GeneratedSheet.test_id == test_id).delete()
+        db.flush()
+
+        # Regenerate OMR template
+        old_tmpl = db.query(OMRTemplate).filter(OMRTemplate.test_id == test_id).first()
+        if old_tmpl:
+            db.delete(old_tmpl)
+            db.flush()
+
+        per_q_opts = {q.question_number: len(q.options) for q in sorted_qs}
+        tmpl = generate_omr_template(test.id, per_q_opts)
+        db.add(tmpl)
+
+        # Adjust answer key: keep existing answers, fill missing
+        old_eval = db.query(Evaluation).filter(Evaluation.test_id == test_id).first()
+        if old_eval:
+            old_answers = json.loads(old_eval.answer_key_json) if old_eval.answer_key_json else []
+            old_map: dict[str, str] = {}
+            if isinstance(old_answers, list):
+                for item in old_answers:
+                    old_map[str(item.get("question_number", ""))] = item.get("correct_answer", "")
+            elif isinstance(old_answers, dict):
+                old_map = old_answers
+
+            new_questions: list[dict] = []
+            for q in sorted_qs:
+                qno = str(q.question_number)
+                new_questions.append({
+                    "question_number": q.question_number,
+                    "options": q.options,
+                    "correct_answer": old_map.get(qno, q.options[0] if q.options else ""),
+                })
+            old_eval.answer_key_json = json.dumps(new_questions)
+            old_eval.updated_at = datetime.now(timezone.utc)
+
+    if changed:
+        test.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(test)
+
+    return _build_detail(test, db)
+
+
+@router.delete("/{test_id}")
+def delete_test(
+    test_id: int,
+    user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    test = db.query(Test).filter(Test.id == test_id).first()
+    if not test:
+        raise HTTPException(404, "Test not found")
+
+    _cleanup_files(db, test_id)
+
+    # Delete child records explicitly to trigger cascade on SQLite
+    db.query(GradingHistory).filter(GradingHistory.test_id == test_id).delete()
+    db.query(QRCode).filter(QRCode.test_id == test_id).delete()
+    db.query(GeneratedSheet).filter(GeneratedSheet.test_id == test_id).delete()
+    db.query(GradingHistory).filter(GradingHistory.test_id == test_id).delete()
+    db.query(Evaluation).filter(Evaluation.test_id == test_id).delete()
+    db.query(OMRTemplate).filter(OMRTemplate.test_id == test_id).delete()
+    db.query(ExamAssignment).filter(ExamAssignment.test_id == test_id).delete()
+    db.flush()
+
+    db.delete(test)
+    db.commit()
+    return {"ok": True}
 
 
 def _build_detail(test: Test, db: Session) -> TestDetailOut:

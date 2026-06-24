@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api, TestDetail, API_BASE } from '../api/client'
+import { api, TestDetail, QuestionDef, API_BASE } from '../api/client'
 import { useAuth, authFetch } from '../auth/AuthContext'
 import {
   ArrowLeft, Download, ScanLine, Check, X, Circle, Clock, Maximize2, X as XIcon,
-  AlertTriangle, User, Printer, Edit3, Save, FileText,
+  AlertTriangle, User, Printer, Edit3, Save, FileText, Trash2, Settings,
 } from 'lucide-react'
 
 interface GradingHistoryItem {
@@ -47,6 +47,17 @@ export default function TestDetailPage() {
   const [showAnswerKey, setShowAnswerKey] = useState(false)
   const [editingAnswers, setEditingAnswers] = useState<Record<number, string>>({})
   const [savingAnswers, setSavingAnswers] = useState(false)
+
+  // Edit test
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editQuestionsCount, setEditQuestionsCount] = useState(0)
+  const [editingTest, setEditingTest] = useState(false)
+
+  // Delete test
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingTest, setDeletingTest] = useState(false)
 
   // Teacher stats
   const [teacherStats, setTeacherStats] = useState<{ average_score: number; highest_score: number; submissions: number } | null>(null)
@@ -146,6 +157,66 @@ export default function TestDetailPage() {
     } catch (_e) {} finally { setSavingAnswers(false) }
   }
 
+  const openEditModal = () => {
+    if (!data) return
+    setEditName(data.test.name)
+    setEditDescription(data.test.description)
+    setEditQuestionsCount(data.test.number_of_questions)
+    setShowEditModal(true)
+  }
+
+  const saveEdit = async () => {
+    if (!testId || !data) return
+    setEditingTest(true)
+    try {
+      const numQuestions = editQuestionsCount
+      const currentCount = data.test.number_of_questions
+      let questions: QuestionDef[] | undefined
+
+      if (numQuestions !== currentCount) {
+        const existingEval = data.evaluation as Record<string, unknown> | null
+        const answerKeyData = (existingEval?.answer_key_json as QuestionDef[]) || []
+        const existingMap: Record<number, QuestionDef> = {}
+        if (Array.isArray(answerKeyData)) {
+          answerKeyData.forEach((q: QuestionDef) => {
+            existingMap[q.question_number] = q
+          })
+        }
+
+        questions = []
+        for (let i = 1; i <= numQuestions; i++) {
+          if (existingMap[i]) {
+            questions.push({ ...existingMap[i], question_number: i })
+          } else {
+            questions.push({
+              question_number: i,
+              options: ['A', 'B', 'C', 'D'],
+              correct_answer: 'A',
+            })
+          }
+        }
+      }
+
+      await api.updateTest(Number(testId), {
+        name: editName,
+        description: editDescription,
+        questions,
+      })
+      const updated = await api.getTest(Number(testId))
+      setData(updated)
+      setShowEditModal(false)
+    } catch (_e) {} finally { setEditingTest(false) }
+  }
+
+  const deleteTest = async () => {
+    if (!testId) return
+    setDeletingTest(true)
+    try {
+      await api.deleteTest(Number(testId))
+      navigate('/', { replace: true })
+    } catch (_e) {} finally { setDeletingTest(false) }
+  }
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-6 md:mb-8">
@@ -160,6 +231,16 @@ export default function TestDetailPage() {
           <Link to={`/tests/${test.id}/grade`} className="btn-primary hidden md:inline-flex">
             <ScanLine className="w-4 h-4" /> {t('testDetail.gradeSheet')}
           </Link>
+        )}
+        {isTeacher && (
+          <>
+            <button onClick={openEditModal} className="btn-ghost p-2 hidden md:inline-flex" title={t('testDetail.editTest')}>
+              <Settings className="w-5 h-5 text-[#6B7280]" />
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="btn-ghost p-2 hidden md:inline-flex" title={t('testDetail.deleteTest')}>
+              <Trash2 className="w-5 h-5 text-[#EF4444]" />
+            </button>
+          </>
         )}
       </div>
 
@@ -348,9 +429,19 @@ export default function TestDetailPage() {
       )}
 
       {isTeacher && (
-        <Link to={`/tests/${test.id}/grade`} className="btn-primary w-full mt-6 md:hidden">
-          <ScanLine className="w-4 h-4" /> Grade a Sheet
-        </Link>
+        <div className="mt-6 md:hidden space-y-3">
+          <Link to={`/tests/${test.id}/grade`} className="btn-primary w-full">
+            <ScanLine className="w-4 h-4" /> Grade a Sheet
+          </Link>
+          <div className="flex gap-3">
+            <button onClick={openEditModal} className="btn-secondary flex-1 text-sm">
+              <Settings className="w-4 h-4" /> Edit
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm">
+              <Trash2 className="w-4 h-4 inline mr-1" /> Delete
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Proof Preview Modal */}
@@ -436,6 +527,70 @@ export default function TestDetailPage() {
           </div>
           <div className="print-full flex-1 overflow-auto flex items-start justify-center bg-white p-4">
             <img src={previewPdf.url} alt={previewPdf.title} className="max-w-full shadow-lg" />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Test Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-4 flex items-center justify-between rounded-t-2xl">
+              <h3 className="font-semibold text-[#0F172A]">{t('testDetail.editTest')}</h3>
+              <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg hover:bg-[#F3F4F6]"><XIcon className="w-5 h-5 text-[#6B7280]" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="label">{t('testDetail.testName')}</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="input w-full"
+                  placeholder={t('testDetail.testName')}
+                />
+              </div>
+              <div>
+                <label className="label">{t('testDetail.questionsCount')}</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={editQuestionsCount}
+                  onChange={(e) => setEditQuestionsCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="input w-full"
+                />
+                <p className="text-xs text-[#9CA3AF] mt-1">{t('testDetail.questionsCountHint')}</p>
+              </div>
+            </div>
+            <div className="border-t border-[#E5E7EB] p-5 flex items-center gap-3">
+              <button onClick={saveEdit} disabled={editingTest || !editName.trim()} className="btn-primary flex-1">
+                <Save className="w-4 h-4" /> {editingTest ? t('testDetail.editing') : t('testDetail.updateTest')}
+              </button>
+              <button onClick={() => setShowEditModal(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-6 text-center">
+              <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-[#0F172A] text-lg mb-2">{t('testDetail.deleteTest')}</h3>
+              <p className="text-sm text-[#6B7280] mb-1">{t('testDetail.deleteConfirm')}</p>
+              <p className="text-xs text-[#EF4444] font-medium">{t('testDetail.deleteWarning')}</p>
+            </div>
+            <div className="border-t border-[#E5E7EB] p-5 flex items-center gap-3">
+              <button onClick={deleteTest} disabled={deletingTest} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50">
+                {deletingTest ? t('testDetail.deleting') : t('testDetail.confirmDelete')}
+              </button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
+            </div>
           </div>
         </div>
       )}

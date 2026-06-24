@@ -198,4 +198,14 @@ export const api = {
     }
     return res.json()
   },
+
+  // Course endpoints
+  updateCourse: (id: number, data: { name?: string; description?: string }) =>
+    request<Record<string, unknown>>(`/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteCourse: (id: number) =>
+    request<{ ok: boolean }>(`/courses/${id}`, { method: 'DELETE' }),
 }

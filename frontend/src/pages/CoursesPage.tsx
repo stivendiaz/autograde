@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth, authFetch } from '../auth/AuthContext'
 import { useTranslation } from 'react-i18next'
+import { api } from '../api/client'
 import ExamCard from '../components/ExamCard'
-import { Plus, BookOpen, Users, FileText, UserPlus, Trash2, ArrowLeft, Search, X } from 'lucide-react'
+import { Plus, BookOpen, Users, FileText, UserPlus, Trash2, ArrowLeft, Search, X, Settings, Save } from 'lucide-react'
 
 interface Course {
   id: number
@@ -27,6 +28,7 @@ interface UserSearchResult {
 
 export default function CoursesPage() {
   const { courseId } = useParams<{ courseId: string }>()
+  const navigate = useNavigate()
   const { token, isTeacher } = useAuth()
   const { t } = useTranslation()
   const [courses, setCourses] = useState<Course[]>([])
@@ -39,6 +41,16 @@ export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+
+  // Edit course
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editingCourse, setEditingCourse] = useState(false)
+
+  // Delete course
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingCourse, setDeletingCourse] = useState(false)
 
   const doSearch = async (role: string) => {
     if (!searchQuery.trim()) return
@@ -106,6 +118,44 @@ export default function CoursesPage() {
     setAddModal(null)
   }
 
+  const removeTeacher = async (teacherId: number) => {
+    if (!detail) return
+    await authFetch(`/courses/${detail.id}/teachers/${teacherId}`, token, { method: 'DELETE' })
+    await fetchDetail(detail.id)
+  }
+
+  const removeStudent = async (studentId: number) => {
+    if (!detail) return
+    await authFetch(`/courses/${detail.id}/students/${studentId}`, token, { method: 'DELETE' })
+    await fetchDetail(detail.id)
+  }
+
+  const openEditModal = () => {
+    if (!detail) return
+    setEditName(detail.name)
+    setEditDesc(detail.description)
+    setShowEditModal(true)
+  }
+
+  const saveEdit = async () => {
+    if (!detail || !editName.trim()) return
+    setEditingCourse(true)
+    try {
+      await api.updateCourse(detail.id, { name: editName, description: editDesc })
+      await fetchDetail(detail.id)
+      setShowEditModal(false)
+    } catch {} finally { setEditingCourse(false) }
+  }
+
+  const deleteCourse = async () => {
+    if (!detail) return
+    setDeletingCourse(true)
+    try {
+      await api.deleteCourse(detail.id)
+      navigate('/courses', { replace: true })
+    } catch {} finally { setDeletingCourse(false) }
+  }
+
   if (detail) {
     return (
       <div>
@@ -113,10 +163,20 @@ export default function CoursesPage() {
           <Link to="/courses" className="text-[#6B7280] hover:text-[#0F172A] p-1 -ml-1">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-[#0F172A]">{detail.name}</h1>
             <p className="text-[#6B7280] text-sm">{detail.description}</p>
           </div>
+          {isTeacher && (
+            <div className="flex items-center gap-1">
+              <button onClick={openEditModal} className="btn-ghost p-2" title={t('courses.editCourse')}>
+                <Settings className="w-5 h-5 text-[#6B7280]" />
+              </button>
+              <button onClick={() => setShowDeleteConfirm(true)} className="btn-ghost p-2" title={t('courses.deleteCourse')}>
+                <Trash2 className="w-5 h-5 text-[#EF4444]" />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -139,7 +199,7 @@ export default function CoursesPage() {
                 <div key={t.id} className="flex items-center justify-between py-2 px-3 bg-[#F9FAFB] rounded-lg">
                   <span className="text-sm font-medium">{t.name || t.email}</span>
                   {isTeacher && detail.teachers.length > 1 && (
-                    <button onClick={() => {}} className="text-[#9CA3AF] hover:text-red-600">
+                    <button onClick={() => removeTeacher(t.id)} className="text-[#9CA3AF] hover:text-red-600">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -166,6 +226,11 @@ export default function CoursesPage() {
               {detail.students.map((s) => (
                 <div key={s.id} className="flex items-center justify-between py-2 px-3 bg-[#F9FAFB] rounded-lg">
                   <span className="text-sm font-medium">{s.name || s.email}</span>
+                  {isTeacher && (
+                    <button onClick={() => removeStudent(s.id)} className="text-[#9CA3AF] hover:text-red-600">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -277,6 +342,69 @@ export default function CoursesPage() {
             </div>
           </div>
         )}
+
+        {/* Edit Course Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-4 flex items-center justify-between rounded-t-2xl">
+                <h3 className="font-semibold text-[#0F172A]">{t('courses.editCourse')}</h3>
+                <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg hover:bg-[#F3F4F6]">
+                  <X className="w-4 h-4 text-[#6B7280]" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="label">{t('courses.editCourseName')}</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="input w-full"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="label">Description</label>
+                  <input
+                    type="text"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+              <div className="border-t border-[#E5E7EB] p-5 flex items-center gap-3">
+                <button onClick={saveEdit} disabled={editingCourse || !editName.trim()} className="btn-primary flex-1">
+                  <Save className="w-4 h-4" /> {editingCourse ? t('courses.removing') : t('courses.updateCourse')}
+                </button>
+                <button onClick={() => setShowEditModal(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="px-5 py-6 text-center">
+                <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="font-semibold text-[#0F172A] text-lg mb-2">{t('courses.deleteCourse')}</h3>
+                <p className="text-sm text-[#6B7280] mb-1">{t('courses.deleteCourseConfirm')}</p>
+                <p className="text-xs text-[#EF4444] font-medium">{t('courses.deleteCourseWarning')}</p>
+              </div>
+              <div className="border-t border-[#E5E7EB] p-5 flex items-center gap-3">
+                <button onClick={deleteCourse} disabled={deletingCourse} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50">
+                  {deletingCourse ? t('courses.removing') : t('courses.deleteCourse')}
+                </button>
+                <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -317,32 +445,41 @@ export default function CoursesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {courses.map((c) => (
-          <Link
-            key={c.id}
-            to={`/courses/${c.id}`}
-            className="card p-5 hover:shadow-elevated transition-all active:scale-[0.98] group"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-brand-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#0F172A] group-hover:text-brand-600 transition-colors">
-                    {c.name}
-                  </h3>
-                  {c.description && (
-                    <p className="text-xs text-[#9CA3AF] mt-0.5 line-clamp-1">{c.description}</p>
-                  )}
+          <div key={c.id} className="card p-5 hover:shadow-elevated transition-all active:scale-[0.98] group relative">
+            <Link to={`/courses/${c.id}`} className="block">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-brand-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0F172A] group-hover:text-brand-600 transition-colors">
+                      {c.name}
+                    </h3>
+                    {c.description && (
+                      <p className="text-xs text-[#9CA3AF] mt-0.5 line-clamp-1">{c.description}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-              <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {c.teacher_count}</span>
-              <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {c.student_count}</span>
-              <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {c.test_count}</span>
-            </div>
-          </Link>
+              <div className="flex items-center gap-4 text-xs text-[#6B7280]">
+                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {c.teacher_count}</span>
+                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {c.student_count}</span>
+                <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {c.test_count}</span>
+              </div>
+            </Link>
+            {isTeacher && (
+              <div className="absolute top-3 right-3 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/courses/${c.id}`); }}
+                  className="p-1.5 rounded-lg hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#0F172A]"
+                  title={t('courses.editCourse')}
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         ))}
 
         {courses.length === 0 && (

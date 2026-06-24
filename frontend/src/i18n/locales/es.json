@@ -193,7 +193,14 @@
     "searchTeacher": "Buscar profesor por nombre o correo...",
     "searchStudent": "Buscar estudiante por nombre o correo...",
     "searching": "Buscando...",
-    "noUsersFound": "No se encontraron usuarios"
+    "noUsersFound": "No se encontraron usuarios",
+    "editCourse": "Editar Curso",
+    "deleteCourse": "Eliminar Curso",
+    "updateCourse": "Actualizar Curso",
+    "editCourseName": "Nombre del Curso",
+    "deleteCourseConfirm": "¿Estás seguro de que deseas eliminar este curso? Los exámenes del curso no se eliminarán, pero dejarán de estar asociados a un curso.",
+    "deleteCourseWarning": "Esta acción no se puede deshacer.",
+    "removing": "Eliminando..."
   },
   "settings": {
     "title": "Configuración",

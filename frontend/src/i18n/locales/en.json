@@ -193,7 +193,14 @@
     "searchTeacher": "Search teacher by name or email...",
     "searchStudent": "Search student by name or email...",
     "searching": "Searching...",
-    "noUsersFound": "No users found"
+    "noUsersFound": "No users found",
+    "editCourse": "Edit Course",
+    "deleteCourse": "Delete Course",
+    "updateCourse": "Update Course",
+    "editCourseName": "Course Name",
+    "deleteCourseConfirm": "Are you sure you want to delete this course? Tests in this course will not be deleted but will no longer be associated with a course.",
+    "deleteCourseWarning": "This action cannot be undone.",
+    "removing": "Removing..."
   },
   "settings": {
     "title": "Settings",

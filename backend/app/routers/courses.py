@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,6 +14,11 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 class CourseCreate(BaseModel):
     name: str
     description: str = ""
+
+
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class TeacherAdd(BaseModel):
@@ -167,6 +174,45 @@ def remove_student(
     if cs:
         db.delete(cs)
         db.commit()
+    return {"ok": True}
+
+
+@router.put("/{course_id}")
+def update_course(
+    course_id: int,
+    payload: CourseUpdate,
+    user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    if not user_is_course_teacher(user, course_id, db):
+        raise HTTPException(403, "Access denied")
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Course not found")
+    if payload.name is not None:
+        course.name = payload.name
+    if payload.description is not None:
+        course.description = payload.description
+    db.commit()
+    db.refresh(course)
+    return _format_course(course, db)
+
+
+@router.delete("/{course_id}")
+def delete_course(
+    course_id: int,
+    user: User = Depends(require_teacher),
+    db: Session = Depends(get_db),
+):
+    if not user_is_course_teacher(user, course_id, db):
+        raise HTTPException(403, "Access denied")
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Course not found")
+    # Nullify course_id on linked tests (FK is nullable — tests survive)
+    db.query(Test).filter(Test.course_id == course_id).update({"course_id": None})
+    db.delete(course)
+    db.commit()
     return {"ok": True}
 
 

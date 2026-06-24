@@ -59,9 +59,9 @@ def _build_sheet_image(
     scale = layout.get("scale", 1.0)
 
     try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 36)
-        font_body = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
-        font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 18)
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
+        font_body = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 32)
+        font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
         # Question fonts scale proportionally with the content
         font_q_size = max(12, int(22 * scale))
         font_label_size = max(10, int(18 * scale))
@@ -169,11 +169,12 @@ def _draw_student_fields(draw: ImageDraw, layout: dict, font, lang: str = "es"):
     name_label = "Nombre del estudiante:" if lang == "es" else "Student Name:"
     id_label = "ID del estudiante:" if lang == "es" else "Student ID:"
 
+    label_rect_gap = 36  # room for larger (24pt) label text
     draw.text((nf["x"], nf["y"] - 4), name_label, fill="black", font=font)
-    draw.rectangle([nf["x"], nf["y"] + 18, nf["x"] + nf["w"], nf["y"] + nf["h"]], outline="black", width=2)
+    draw.rectangle([nf["x"], nf["y"] + label_rect_gap, nf["x"] + nf["w"], nf["y"] + nf["h"]], outline="black", width=2)
 
     draw.text((idf["x"], idf["y"] - 4), id_label, fill="black", font=font)
-    draw.rectangle([idf["x"], idf["y"] + 18, idf["x"] + idf["w"], idf["y"] + idf["h"]], outline="black", width=2)
+    draw.rectangle([idf["x"], idf["y"] + label_rect_gap, idf["x"] + idf["w"], idf["y"] + idf["h"]], outline="black", width=2)
 
 
 def _draw_instructions(draw: ImageDraw, layout: dict, num_q: int, font, lang: str = "es"):

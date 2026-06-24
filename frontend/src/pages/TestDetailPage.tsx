@@ -64,6 +64,14 @@ export default function TestDetailPage() {
 
   // Sheet PDF preview
   const [previewPdf, setPreviewPdf] = useState<{ url: string; title: string } | null>(null)
+  const [numCopies, setNumCopies] = useState(1)
+  const [printMode, setPrintMode] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setPrintMode(false)
+    window.addEventListener('afterprint', handler)
+    return () => window.removeEventListener('afterprint', handler)
+  }, [])
 
   useEffect(() => {
     if (!testId) return
@@ -231,7 +239,8 @@ export default function TestDetailPage() {
   }
 
   return (
-    <div>
+    <>
+      <div className={printMode ? 'no-print' : ''}>
       <div className="flex items-center gap-3 mb-6 md:mb-8">
         <Link to="/" className="text-[#6B7280] hover:text-[#0F172A] transition-colors p-1 -ml-1">
           <ArrowLeft className="w-5 h-5" />
@@ -359,7 +368,7 @@ export default function TestDetailPage() {
 
           {/* Sheets export actions */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <button onClick={() => setPreviewPdf({ url: sheetUrl, title: t('testDetail.answerSheet') })} className="card p-3 flex flex-col items-center gap-1 hover:shadow-elevated transition-all active:scale-[0.98]">
+            <button onClick={() => { setNumCopies(1); setPreviewPdf({ url: sheetUrl, title: t('testDetail.answerSheet') }) }} className="card p-3 flex flex-col items-center gap-1 hover:shadow-elevated transition-all active:scale-[0.98]">
               <Printer className="w-5 h-5 text-brand-600" />
               <span className="text-xs font-medium text-[#0F172A]">{t('testDetail.answerSheet')}</span>
               <span className="text-[10px] text-[#9CA3AF]">{t('testDetail.previewPrint')}</span>
@@ -369,7 +378,7 @@ export default function TestDetailPage() {
               <span className="text-xs font-medium text-[#0F172A]">{t('testDetail.answerSheet')}</span>
               <span className="text-[10px] text-[#9CA3AF]">{t('testDetail.downloadPdf')}</span>
             </a>
-            <button onClick={() => setPreviewPdf({ url: keyUrl, title: t('testDetail.answerKeySheet') })} className="card p-3 flex flex-col items-center gap-1 hover:shadow-elevated transition-all active:scale-[0.98]">
+            <button onClick={() => { setNumCopies(1); setPreviewPdf({ url: keyUrl, title: t('testDetail.answerKeySheet') }) }} className="card p-3 flex flex-col items-center gap-1 hover:shadow-elevated transition-all active:scale-[0.98]">
               <Printer className="w-5 h-5 text-brand-600" />
               <span className="text-xs font-medium text-[#0F172A]">{t('testDetail.answerKeySheet')}</span>
               <span className="text-[10px] text-[#9CA3AF]">{t('testDetail.previewPrint')}</span>
@@ -532,20 +541,33 @@ export default function TestDetailPage() {
 
       {/* Sheet Preview Modal */}
       {previewPdf && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white" onClick={() => setPreviewPdf(null)}>
-          <div className="no-print sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-3 flex items-center justify-between z-10">
-            <h3 className="font-semibold text-[#0F172A]">{previewPdf.title}</h3>
-            <div className="flex items-center gap-2">
-              <button onClick={() => { document.title = previewPdf.title; window.print(); setTimeout(() => { document.title = 'LiveTest — OMR Exam Platform' }, 100) }} className="btn-primary text-sm py-1.5 px-3 h-auto">
-                <Printer className="w-4 h-4" /> {t('testDetail.print')}
-              </button>
-              <button onClick={() => setPreviewPdf(null)} className="p-2 rounded-lg hover:bg-[#F3F4F6]">
-                <XIcon className="w-5 h-5 text-[#6B7280]" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setPreviewPdf(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
+              <h3 className="font-semibold text-[#0F172A]">{previewPdf.title}</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <label className="text-xs text-[#6B7280]">{t('testDetail.copies')}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={numCopies}
+                    onChange={(e) => setNumCopies(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                    className="input w-24 text-center text-sm py-1"
+                  />
+                </div>
+                <button onClick={() => { setPrintMode(true); setTimeout(() => window.print(), 100) }} className="btn-ghost p-2" title={t('testDetail.print')}>
+                  <Printer className="w-5 h-5 text-[#6B7280]" />
+                </button>
+                <button onClick={() => setPreviewPdf(null)} className="btn-ghost p-2" title={t('testDetail.close')}>
+                  <XIcon className="w-5 h-5 text-[#6B7280]" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="print-full flex-1 overflow-auto flex items-start justify-center bg-white p-4">
-            <img src={previewPdf.url} alt={previewPdf.title} className="max-w-full shadow-lg" />
+            <div className="p-5">
+              <img src={previewPdf.url} alt={previewPdf.title} className="w-full rounded-xl border border-[#F3F4F6]" />
+            </div>
           </div>
         </div>
       )}
@@ -613,6 +635,32 @@ export default function TestDetailPage() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Print overlay — covers the page during print */}
+      </div>
+      {printMode && previewPdf && (
+        <div className="absolute inset-0 z-[9999] bg-white">
+          {Array.from({ length: numCopies }, (_, i) => (
+            <div
+              key={i}
+              style={{
+                pageBreakAfter: i < numCopies - 1 ? 'always' : 'auto',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+              }}
+            >
+              <img
+                src={previewPdf.url}
+                alt={`${previewPdf.title} — copy ${i + 1}`}
+                style={{ width: '100%', height: 'auto' }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   )
 }

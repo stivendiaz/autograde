@@ -97,6 +97,7 @@
     "proofImage": "Proof Image",
     "close": "Close",
     "print": "Print",
+    "copies": "Copies:",
     "course": "Course: {{name}}",
     "gradedSheet": "{{count}} graded sheet(s)",
     "noHistory": "No grading history yet.",

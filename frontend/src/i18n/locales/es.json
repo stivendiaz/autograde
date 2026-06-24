@@ -97,6 +97,7 @@
     "proofImage": "Imagen de comprobante",
     "close": "Cerrar",
     "print": "Imprimir",
+    "copies": "Copias:",
     "course": "Curso: {{name}}",
     "gradedSheet": "{{count}} hoja(s) calificada(s)",
     "noHistory": "Sin historial de calificación aún.",

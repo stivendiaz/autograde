@@ -127,6 +127,19 @@ export default function TestDetailPage() {
   const keyPdfUrl = api.getAnswerKeyPdfWithLang(test.id, lang)
   const openForPrint = (url: string) => window.open(url, '_blank')
 
+  // Precompute score distribution buckets
+  const scoreBuckets = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+  const bucketCounts = scoreBuckets.map((bucket) =>
+    history.filter((h) => {
+      if (h.total_questions === 0) return false
+      const pct = (h.score / h.total_questions) * 100
+      // Last bucket [90, 100] includes perfect scores
+      return pct >= bucket && (pct < bucket + 10 || (bucket === 90 && pct <= 100))
+    }).length
+  )
+  const maxBucketCount = Math.max(1, ...bucketCounts)
+  const hasBuckets = bucketCounts.some((c) => c > 0)
+
   const openAnswerKeyModal = () => {
     if (!data.evaluation) return
     const raw = (data.evaluation as any).answer_key_json
@@ -305,38 +318,44 @@ export default function TestDetailPage() {
           </div>
 
           {/* Results distribution chart */}
-          {history.length > 0 && (
-            <div className="card p-4 md:p-6 mb-6">
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">{t('testDetail.scoreDistribution')}</p>
-              <div className="h-10 flex items-end gap-1">
-                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map((bucket) => {
-                  const count = history.filter((h) => {
-                    const pct = (h.score / h.total_questions) * 100
-                    return pct >= bucket && pct < bucket + 10
-                  }).length
-                  const maxCount = Math.max(1, ...history.map((h) => 1))
-                  const height = count > 0 ? Math.max(4, (count / history.length) * 100) : 0
-                  return (
-                    <div key={bucket} className="flex-1 flex flex-col items-center justify-end h-full" title={`${bucket}-${bucket + 9}%: ${count} student(s)`}>
+          <div className="card p-4 md:p-6 mb-6">
+            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">{t('testDetail.scoreDistribution')}</p>
+            {history.length === 0 ? (
+              <div className="text-center py-4 text-[#9CA3AF] text-sm">No grading data yet.</div>
+            ) : !hasBuckets ? (
+              <div className="text-center py-4 text-[#9CA3AF] text-sm">No submissions to chart.</div>
+            ) : (
+              <>
+                <div className="h-20 flex items-end gap-1">
+                  {scoreBuckets.map((bucket, i) => {
+                    const count = bucketCounts[i]
+                    const barHeight = count > 0 ? Math.max(6, (count / maxBucketCount) * 100) : 0
+                    return (
                       <div
-                        className="w-full rounded-t"
-                        style={{
-                          height: `${height}%`,
-                          backgroundColor: bucket >= 70 ? '#22C55E' : bucket >= 40 ? '#F59E0B' : '#EF4444',
-                          minHeight: count > 0 ? 4 : 0,
-                        }}
-                      />
-                      <span className="text-[9px] text-[#9CA3AF] mt-1">{bucket}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-[#9CA3AF]">0%</span>
-                <span className="text-[10px] text-[#9CA3AF]">100%</span>
-              </div>
-            </div>
-          )}
+                        key={bucket}
+                        className="flex-1 flex flex-col items-center justify-end h-full"
+                        title={`${bucket}–${bucket + 9}%: ${count} student${count !== 1 ? 's' : ''}`}
+                      >
+                        <div
+                          className="w-full rounded-t transition-all duration-300"
+                          style={{
+                            height: `${barHeight}%`,
+                            minHeight: count > 0 ? 6 : 0,
+                            backgroundColor: bucket >= 70 ? '#22C55E' : bucket >= 40 ? '#F59E0B' : '#EF4444',
+                          }}
+                        />
+                        <span className="text-[9px] text-[#9CA3AF] mt-1">{bucket}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] text-[#9CA3AF]">0%</span>
+                  <span className="text-[10px] text-[#9CA3AF]">100%</span>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Sheets export actions */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

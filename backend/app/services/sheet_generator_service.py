@@ -47,6 +47,29 @@ def generate_answer_key_pdf(
     return pdf_path
 
 
+FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    "C:\\Windows\\Fonts\\Arial.ttf",
+]
+
+
+def _font_path() -> str | None:
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    path = _font_path()
+    if path:
+        return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
 def _build_sheet_image(
     test_id: int, template: OMRTemplate, test_name: str, qr_code: str = "", lang: str = "es"
 ) -> Image.Image:
@@ -58,21 +81,13 @@ def _build_sheet_image(
 
     scale = layout.get("scale", 1.0)
 
-    try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
-        font_body = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 32)
-        font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
-        # Question fonts scale proportionally with the content
-        font_q_size = max(12, int(22 * scale))
-        font_label_size = max(10, int(18 * scale))
-        font_q = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_q_size)
-        font_label = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_label_size)
-    except Exception:
-        font_title = ImageFont.load_default()
-        font_body = font_title
-        font_small = font_title
-        font_q = font_title
-        font_label = font_title
+    font_title = _load_font(60)
+    font_body = _load_font(32)
+    font_small = _load_font(24)
+    font_q_size = max(12, int(22 * scale))
+    font_label_size = max(10, int(18 * scale))
+    font_q = _load_font(font_q_size)
+    font_label = _load_font(font_label_size)
 
     _draw_markers(draw, layout)
     _draw_title(draw, layout, test_name, font_title)
@@ -98,11 +113,8 @@ def _build_key_image(
         correct_map[q.get("question_number")] = q.get("correct_answer", "")
 
     scale = layout.get("scale", 1.0)
-    try:
-        font_w_size = max(12, int(16 * scale))
-        font_w = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_w_size)
-    except Exception:
-        font_w = ImageFont.load_default()
+    font_w_size = max(12, int(16 * scale))
+    font_w = _load_font(font_w_size)
 
     for q in layout["questions"]:
         qno = q["number"]

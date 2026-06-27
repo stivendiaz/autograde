@@ -6,9 +6,11 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from app.config import STORAGE_DIR
+from app.services.grading_service import generate_debug_image
 
 PROCESSED_DIR = STORAGE_DIR / "processed"
 PROOFS_DIR = STORAGE_DIR / "proofs"
+DEBUG_DIR = STORAGE_DIR / "debug"
 
 COLORS = {
     "correct":  (34, 197, 94),    # #22C55E green
@@ -47,6 +49,22 @@ def save_processed(pil_image: Image.Image, uid: str) -> str:
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     dest = PROCESSED_DIR / f"{uid}_processed.png"
     pil_image.save(dest, "PNG")
+    return str(dest)
+
+
+def save_debug_image(
+    image_path: str,
+    template,
+    result: dict,
+    answer_key: dict[str, str],
+    uid: str,
+) -> str | None:
+    debug_img = generate_debug_image(image_path, template, result, answer_key)
+    if debug_img is None:
+        return None
+    os.makedirs(DEBUG_DIR, exist_ok=True)
+    dest = DEBUG_DIR / f"{uid}_debug.png"
+    debug_img.save(dest, "PNG")
     return str(dest)
 
 

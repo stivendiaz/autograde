@@ -14,9 +14,16 @@ from app.config import STORAGE_DIR
 from app.database import get_db
 from app.models import Evaluation, GradingHistory, GradingResult, OMRTemplate, Test
 from app.schemas import GradeResponse, GradingResultOut
-from app.services.grading_service import get_corrected_pil_image, grade_sheet
+from app.services.grading_service import (
+    AlignmentError,
+    GradingError,
+    MarkerNotFoundError,
+    get_corrected_pil_image,
+    grade_sheet,
+)
 from app.services.grading_history_service import (
     generate_proof,
+    save_debug_image,
     save_original,
     save_processed,
 )
@@ -63,10 +70,11 @@ def grade_upload(
 
     try:
         result = grade_sheet(str(dest), tmpl, answer_key)
-    except ValueError as e:
-        msg = str(e).lower()
-        if "marker" in msg:
-            raise HTTPException(422, "Processing failed: no markers detected — this image does not appear to be a valid answer sheet.")
+    except MarkerNotFoundError as e:
+        raise HTTPException(422, str(e))
+    except AlignmentError as e:
+        raise HTTPException(422, str(e))
+    except GradingError as e:
         raise HTTPException(400, str(e))
 
     grading = GradingResult(
@@ -161,6 +169,7 @@ def _save_history_for_manual(
     original_path = image_path
     processed_path = None
     annotated_path = None
+    debug_path = None
 
     try:
         original_path = save_original(image_path, uid)
@@ -170,9 +179,14 @@ def _save_history_for_manual(
         annotated_path = generate_proof(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
+        debug_path = save_debug_image(image_path, tmpl, result, answer_key, uid)
     except Exception:
         logger.exception("_save_history_for_manual: image processing failed")
         pass
+
+    result_with_debug = {**result}
+    if debug_path:
+        result_with_debug["debug_image_path"] = debug_path
 
     record = GradingHistory(
         test_id=test.id,
@@ -190,7 +204,7 @@ def _save_history_for_manual(
         incorrect_count=result["incorrect_count"],
         blank_count=result["blank_count"],
         ambiguous_count=0,
-        result_json=json.dumps(result),
+        result_json=json.dumps(result_with_debug),
     )
     db.add(record)
     db.commit()

@@ -16,9 +16,16 @@ from app.config import STORAGE_DIR
 from app.database import get_db
 from app.models import Evaluation, GeneratedSheet, GradingHistory, GradingResult, OMRTemplate, QRCode, Test
 from app.schemas import AutoDetectResponse
-from app.services.grading_service import get_corrected_pil_image, grade_sheet
+from app.services.grading_service import (
+    AlignmentError,
+    GradingError,
+    MarkerNotFoundError,
+    get_corrected_pil_image,
+    grade_sheet,
+)
 from app.services.grading_history_service import (
     generate_proof,
+    save_debug_image,
     save_original,
     save_processed,
 )
@@ -122,20 +129,19 @@ def _attempt_grading(
 
     try:
         result = grade_sheet(image_path, tmpl, answer_key)
-    except ValueError as e:
-        msg = str(e)
-        if "marker" in msg.lower():
-            return AutoDetectResponse(
-                status="qr_only",
-                qr_detected=True,
-                exam_detected=False,
-                markers_detected=False,
-                error="Processing failed: no markers detected",
-                test_id=test.id,
-                test_name=test.name,
-                sheet_id=sheet.id,
-                redirect_url=f"/tests/{test.id}",
-            )
+    except MarkerNotFoundError:
+        return AutoDetectResponse(
+            status="qr_only",
+            qr_detected=True,
+            exam_detected=False,
+            markers_detected=False,
+            error="Could not detect OMR markers. Please retake the photo ensuring all four corner markers are visible.",
+            test_id=test.id,
+            test_name=test.name,
+            sheet_id=sheet.id,
+            redirect_url=f"/tests/{test.id}",
+        )
+    except (AlignmentError, GradingError):
         return AutoDetectResponse(
             status="qr_only",
             qr_detected=True,
@@ -276,6 +282,7 @@ def _save_grading_history(
     corrected_pil = None
     processed_path = None
     annotated_path = None
+    debug_path = None
     ambiguous_count = 0
 
     try:
@@ -286,9 +293,14 @@ def _save_grading_history(
         annotated_path = generate_proof(
             corrected_pil, layout, result["detected_answers"], answer_key, uid
         )
+        debug_path = save_debug_image(image_path, tmpl, result, answer_key, uid)
     except Exception:
         logger.exception("_save_grading_history: image processing failed")
         pass
+
+    result_with_debug = {**result}
+    if debug_path:
+        result_with_debug["debug_image_path"] = debug_path
 
     record = GradingHistory(
         test_id=test.id,
@@ -306,7 +318,7 @@ def _save_grading_history(
         incorrect_count=result["incorrect_count"],
         blank_count=result["blank_count"],
         ambiguous_count=ambiguous_count,
-        result_json=json.dumps(result),
+        result_json=json.dumps(result_with_debug),
     )
     db.add(record)
     db.commit()
